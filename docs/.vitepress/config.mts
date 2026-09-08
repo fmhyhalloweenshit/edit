@@ -3,8 +3,8 @@ import consola from 'consola'
 import UnoCSS from 'unocss/vite'
 import AutoImport from 'unplugin-auto-import/vite'
 import OptimizeExclude from 'vite-plugin-optimize-exclude'
-import Terminal from 'vite-plugin-terminal'
 import { VitePWA } from 'vite-plugin-pwa'
+import Terminal from 'vite-plugin-terminal'
 import { defineConfig } from 'vitepress'
 import {
   commitRef,
@@ -34,7 +34,8 @@ export default defineConfig({
   cleanUrls: true,
   appearance: true,
   base: baseUrl,
-  srcExclude: ['README.md', 'single-page'],
+  scrollOffset: { selector: '.fmhy-scroll-inset', padding: 0 },
+  srcExclude: ['README.md', 'public/single-page.md', 'single-page'],
   ignoreDeadLinks: true,
   sitemap: {
     hostname: meta.hostname
@@ -43,16 +44,32 @@ export default defineConfig({
     ['meta', { name: 'theme-color', content: '#7bc5e4' }],
     ['meta', { name: 'og:type', content: 'website' }],
     ['meta', { name: 'og:locale', content: 'en' }],
-    ['link', { rel: 'icon', href: '/test.png' }],
+    ['link', { rel: 'icon', href: '/fmhy.ico' }],
+    [
+      'link',
+      {
+        rel: 'alternate',
+        type: 'application/rss+xml',
+        title: 'FMHY RSS Feed',
+        href: '/feed.rss'
+      }
+    ],
     // PWA
     ['link', { rel: 'manifest', href: '/manifest.json' }],
-    ['link', { rel: 'icon', href: '/pwa_icon.png', type: 'image/svg+xml' }],
-    ['link', { rel: 'alternate icon', href: '/pwa_icon.png' }],
-    ['link', { rel: 'mask-icon', href: '/pwa_icon.png', color: '#000000ff' }],
+    [
+      'link',
+      { rel: 'alternate icon', href: '/pwa_icon.png', type: 'image/png' }
+    ],
     ['meta', { name: 'keywords', content: meta.keywords.join(' ') }],
-    ['link', { rel: 'apple-touch-icon', href: '/pwa_icon.png', sizes: '192x192' }],
+    [
+      'link',
+      { rel: 'apple-touch-icon', href: '/pwa_icon.png', sizes: '192x192' }
+    ],
     ['meta', { name: 'apple-mobile-web-app-capable', content: 'yes' }],
-    ['meta', { name: 'apple-mobile-web-app-status-bar-style', content: 'default' }],
+    [
+      'meta',
+      { name: 'apple-mobile-web-app-status-bar-style', content: 'default' }
+    ],
     // Bing site verification
     [
       'meta',
@@ -80,13 +97,61 @@ export default defineConfig({
           }
         })();
         `
+    ],
+    // Apply the saved theme synchronously before the page paints, so users
+    // who picked a non-default theme don't briefly see the default one.
+    [
+      'script',
+      {},
+      `
+        (function() {
+          try {
+            var d = document.documentElement;
+            var mode = localStorage.getItem('vitepress-display-mode');
+            var amoled = localStorage.getItem('vitepress-amoled-enabled') === 'true';
+            var themeName = localStorage.getItem('vitepress-theme-name') || 'color-swarm';
+            var varsJson = localStorage.getItem('vitepress-theme-vars');
+
+            if (!mode) {
+              mode = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            }
+
+            if (mode === 'dark') {
+              d.classList.add('dark');
+              d.classList.remove('light');
+            } else {
+              d.classList.add('light');
+              d.classList.remove('dark');
+            }
+
+            if (mode === 'dark' && amoled) d.classList.add('amoled');
+            else d.classList.remove('amoled');
+
+            d.dataset.theme = themeName;
+
+            if (varsJson) {
+              var vars = JSON.parse(varsJson);
+              for (var k in vars) {
+                if (Object.prototype.hasOwnProperty.call(vars, k) && k.indexOf('--vp-') === 0) {
+                  d.style.setProperty(k, vars[k]);
+                }
+              }
+            }
+          } catch (e) {}
+        })();
+        `
     ]
   ],
   transformHead: async (context) => generateMeta(context, meta.hostname),
   buildEnd: async (context) => {
-    generateImages(context)
-      .then(() => generateFeed(context))
-      .finally(() => consola.success('Success!'))
+    try {
+      await generateImages(context)
+      await generateFeed(context)
+      consola.success('Build hooks completed successfully.')
+    } catch (error) {
+      consola.error('Build hook failed:', error)
+      throw error
+    }
   },
   vite: {
     css: {
@@ -96,9 +161,7 @@ export default defineConfig({
         }
       }
     },
-    ssr: {
-      noExternal: ['@fmhy/components']
-    },
+
     resolve: {
       alias: [
         {
@@ -145,7 +208,10 @@ export default defineConfig({
       VitePWA({
         registerType: 'autoUpdate',
         workbox: {
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+          // Precache only the app shell; images and pages go through runtimeCaching below.
+          maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
+          globPatterns: ['**/*.{js,css,woff2}'],
+          globIgnores: ['**/*localSearchIndex*.js'],
           runtimeCaching: [
             {
               urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -160,50 +226,41 @@ export default defineConfig({
                   statuses: [0, 200]
                 }
               }
+            },
+            {
+              urlPattern: /\.(?:png|jpe?g|svg|webp|ico)$/,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'images-cache',
+                expiration: {
+                  maxEntries: 60,
+                  maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
+                },
+                cacheableResponse: {
+                  statuses: [0, 200]
+                }
+              }
+            },
+            {
+              urlPattern: ({ request }) => request.mode === 'navigate',
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: 'pages-cache',
+                expiration: {
+                  maxEntries: 50,
+                  maxAgeSeconds: 60 * 60 * 24 // 1 day
+                }
+              }
             }
           ]
         },
-        manifest: {
-          name: 'FMHY - freemediaheckyeah',
-          short_name: 'FMHY',
-          description: 'The largest collection of free stuff on the internet!',
-          theme_color: '#000000ff',
-          background_color: '#000000ff',
-          display: 'standalone',
-          orientation: 'portrait',
-          scope: '/',
-          start_url: '/',
-          icons: [
-            {
-              src: '/fmhy.ico',
-              sizes: '16x16',
-              type: 'image/x-icon'
-            },
-            {
-              src: '/pwa_icon.png',
-              sizes: '192x192',
-              type: 'image/png',
-              purpose: 'any maskable'
-            },
-            {
-              src: '/pwa_icon.png',
-              sizes: '512x512',
-              type: 'image/png',
-              purpose: 'any maskable'
-            }
-          ]
-        }
+        // Use docs/public/manifest.json (linked in head) instead of a generated one.
+        manifest: false
       }),
       transformsPlugin(),
       {
         name: 'custom:adjust-order',
         configResolved(c) {
-          movePlugin(
-            c.plugins as any,
-            'vitepress',
-            'before',
-            'unocss:transformers:pre'
-          )
           movePlugin(
             c.plugins as any,
             'custom:transform-content',
@@ -214,6 +271,7 @@ export default defineConfig({
       }
     ],
     build: {
+      reportCompressedSize: false,
       // Shut the fuck up
       chunkSizeWarningLimit: Number.POSITIVE_INFINITY
     }

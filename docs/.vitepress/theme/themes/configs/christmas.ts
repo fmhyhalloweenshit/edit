@@ -17,9 +17,9 @@
 import type { Theme } from '../types'
 
 export const christmasTheme: Theme = {
-  name: 'Christmas',
   displayName: 'Christmas',
-  preview: 'https://raw.githubusercontent.com/fmhy/edit/refs/heads/main/docs/.vitepress/theme/themes/configs/christmas_tree.png',
+  preview:
+    'https://raw.githubusercontent.com/fmhy/edit/refs/heads/main/docs/.vitepress/theme/themes/configs/christmas_tree.png',
   modes: {
     light: {
       brand: {
@@ -31,7 +31,6 @@ export const christmasTheme: Theme = {
       bg: '#f8fafc',
       bgAlt: '#eef2f5',
       bgElv: '#eef2f5',
-      bgMark: 'rgb(232, 232, 232)',
       text: {
         1: '#353638ff',
         2: '#334155',
@@ -87,8 +86,10 @@ export const christmasTheme: Theme = {
       },
       home: {
         heroNameColor: 'transparent',
-        heroNameBackground: '-webkit-linear-gradient(120deg, #BD2F2F 30%, #f9fafb)',
-        heroImageBackground: 'linear-gradient(-45deg, #BD2F2F 50%, #f9fafb 50%)',
+        heroNameBackground:
+          '-webkit-linear-gradient(120deg, #BD2F2F 30%, #f9fafb)',
+        heroImageBackground:
+          'linear-gradient(-45deg, #BD2F2F 50%, #f9fafb 50%)',
         heroImageFilter: 'blur(44px)'
       }
     },
@@ -128,31 +129,32 @@ export const christmasTheme: Theme = {
           text: '#bae6fd',
           textDeep: '#bae6fd'
         },
-          tip: {
-            bg: '#0C2A20',
-            border: '#184633',
-            text: '#B0EBC9',
-            textDeep: '#166534'
-          },
-          warning: {
-            bg: '#403207',
-            border: '#7E6211',
-            text: '#F9DE88',
-            textDeep: '#92400e'
-          },
-          danger: {
-            bg: '#3F060A',
-            border: '#7C0F18',
-            text: '#F7C1BC',
-            textDeep: '#991b1b'
-          }
+        tip: {
+          bg: '#0C2A20',
+          border: '#184633',
+          text: '#B0EBC9',
+          textDeep: '#166534'
+        },
+        warning: {
+          bg: '#403207',
+          border: '#7E6211',
+          text: '#F9DE88',
+          textDeep: '#92400e'
+        },
+        danger: {
+          bg: '#3F060A',
+          border: '#7C0F18',
+          text: '#F7C1BC',
+          textDeep: '#991b1b'
+        }
       },
       selection: {
         bg: '#1e3a8a'
       },
       home: {
         heroNameColor: 'transparent',
-        heroNameBackground: '-webkit-linear-gradient(120deg, #f9fafb 30%, #BD2F2F)',
+        heroNameBackground:
+          '-webkit-linear-gradient(120deg, #f9fafb 30%, #BD2F2F)',
         heroImageBackground: 'linear-gradient(-45deg, #f9fafb 50%,#BD2F2F 50%)',
         heroImageFilter: 'blur(44px)'
       }

@@ -13,13 +13,18 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-import { catppuccinTheme } from './catppuccin'
-import { monochromeTheme } from './monochrome'
+
 import type { ThemeRegistry } from '../types'
+import { catppuccinTheme } from './catppuccin'
+import { colorThemes } from './colors'
+import { monochromeTheme } from './monochrome'
+import { monolithTheme } from './monolith'
 
 export const themeRegistry: ThemeRegistry = {
   catppuccin: catppuccinTheme,
   monochrome: monochromeTheme,
+  monolith: monolithTheme,
+  ...colorThemes
 }
 
-export { catppuccinTheme, monochromeTheme }
+export { catppuccinTheme, monochromeTheme, monolithTheme, colorThemes }
